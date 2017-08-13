@@ -5,9 +5,11 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -24,6 +26,8 @@ import java.net.URL;
 import java.util.Scanner;
 
 public class ImagePicker extends AppCompatActivity {
+    public final int NUM_COLUMNS = 3;
+
     private RecyclerView imageView;
 
     @Override
@@ -32,17 +36,23 @@ public class ImagePicker extends AppCompatActivity {
         setContentView(R.layout.activity_image_picker);
 
         imageView = (RecyclerView) findViewById(R.id.recycler_view_image_view);
-        imageView.setLayoutManager(new LinearLayoutManager(this));
+        imageView.setLayoutManager(new GridLayoutManager(this, NUM_COLUMNS));
 
         JSONRetriever retriever = new JSONRetriever();
         retriever.addAsyncFinishedListener(new AsyncFinished<JSONObject>() {
             @Override
             public void onAsyncFinished(JSONObject o) {
                 System.out.println(o);
-                imageView.setAdapter(new ImageViewAdapter(ImagePicker.this, o));
-                /*try {
-                    Glide.with(ImagePicker.this).load(o.getString("rootPath") + o.getJSONArray("data").getJSONObject(0).getString("name")).into(temp);
-                }catch (Exception e){}*/
+                ImageViewAdapter adapter = new ImageViewAdapter(ImagePicker.this, o);
+
+                //adds a custom on item click method
+                adapter.addRecyclerViewItemClickListener(new ImageViewAdapter.RecyclerViewItemClick() {
+                    @Override
+                    public void onClick(int position) {
+                        System.out.println("position: " + position);
+                    }
+                });
+                imageView.setAdapter(adapter);
             }
         });
         retriever.execute("http://akshathjain.com/WallToWall/json/directory.json");
@@ -107,6 +117,7 @@ class ImageViewAdapter extends RecyclerView.Adapter<ImageViewAdapter.ViewHolder>
     private Context context;
     private String rootURL;
     private JSONArray imageData;
+    private RecyclerViewItemClick viewClickReference;
 
     public ImageViewAdapter(Context context, JSONObject data) {
         this.context = context;
@@ -119,12 +130,21 @@ class ImageViewAdapter extends RecyclerView.Adapter<ImageViewAdapter.ViewHolder>
         }
     }
 
-    public static class ViewHolder extends RecyclerView.ViewHolder {
+    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
         private ImageView imageOne;
 
         public ViewHolder(View itemView) {
             super(itemView);
             imageOne = (ImageView) itemView.findViewById(R.id.image_view_image1);
+
+            //add an onclick listener for view
+            itemView.setOnClickListener(this);
+        }
+
+        @Override //this onclick listener will trigger the reference interface that the implementing class will have to implement
+        public void onClick(View v) {
+            if(viewClickReference != null)
+                viewClickReference.onClick(getAdapterPosition());
         }
     }
 
@@ -148,6 +168,15 @@ class ImageViewAdapter extends RecyclerView.Adapter<ImageViewAdapter.ViewHolder>
     public int getItemCount() {
         return imageData.length();
     }
+
+    public void addRecyclerViewItemClickListener(RecyclerViewItemClick reference){
+        this.viewClickReference = reference;
+    }
+
+    public interface RecyclerViewItemClick{
+        public void onClick(int position);
+    }
+
 }
 
 
