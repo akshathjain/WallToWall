@@ -1,49 +1,52 @@
 package com.akshathjain.walltowall;
 
 import android.app.ProgressDialog;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.content.Context;
 import android.os.AsyncTask;
-import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
+
+import com.bumptech.glide.Glide;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Scanner;
-import java.util.concurrent.ExecutionException;
 
 public class ImagePicker extends AppCompatActivity {
-    private ImageView tempImageView;
+    private RecyclerView imageView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_image_picker);
 
-        tempImageView = (ImageView) findViewById(R.id.tempImageView);
+        imageView = (RecyclerView) findViewById(R.id.recylcer_view_image_view);
+        imageView.setLayoutManager(new LinearLayoutManager(this));
 
-        ImageRetriever retriever = new ImageRetriever();
-        retriever.addAsyncFinishedListener(new AsyncFinished<Bitmap[]>() {
+        JSONRetriever retriever = new JSONRetriever();
+        retriever.addAsyncFinishedListener(new AsyncFinished<JSONObject>() {
             @Override
-            public void onAsyncFinished(Bitmap[] b) {
-                tempImageView.setImageBitmap(b[0]);
+            public void onAsyncFinished(JSONObject o) {
+                System.out.println(o);
+                imageView.setAdapter(new ImageViewAdapter(ImagePicker.this, o));
             }
         });
         retriever.execute("http://akshathjain.com/WallToWall/json/directory.json");
     }
 
     //this class will retrieve the json on a background thread
-    class ImageRetriever extends AsyncTask<String, Void, Bitmap[]> {
+    class JSONRetriever extends AsyncTask<String, Void, JSONObject> {
         private ProgressDialog loader;
         private AsyncFinished reference;
 
@@ -64,7 +67,7 @@ public class ImagePicker extends AppCompatActivity {
         }
 
         @Override
-        protected Bitmap[] doInBackground(String... jsonUrl) {
+        protected JSONObject doInBackground(String... jsonUrl) {
             String result = null;
 
             try {
@@ -79,21 +82,7 @@ public class ImagePicker extends AppCompatActivity {
                 while (scanner.hasNext())
                     result += scanner.nextLine();
 
-                //get the bitmaps from json
-                JSONObject data = new JSONObject(result);
-                String rootPath = data.getString("rootPath");
-                JSONArray imageData = data.getJSONArray("data");
-                Bitmap[] bitmaps = new Bitmap[imageData.length()];
-                for(int i = 0; i < bitmaps.length; i++){
-                    HttpURLConnection con = (HttpURLConnection)new URL(rootPath + imageData.getJSONObject(i).getString("name")).openConnection();
-                    Bitmap fullSize = BitmapFactory.decodeStream(con.getInputStream());
-
-                    //compress the bitmap
-                    ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    fullSize.compress(Bitmap.CompressFormat.PNG, 0, out);
-                    bitmaps[i] = BitmapFactory.decodeStream(new ByteArrayInputStream(out.toByteArray()));
-                }
-                return bitmaps;
+                return new JSONObject(result);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -102,11 +91,59 @@ public class ImagePicker extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(Bitmap[] data) {
+        protected void onPostExecute(JSONObject data) {
             super.onPostExecute(data);
             loader.dismiss(); //dismiss the loader dialog
             reference.onAsyncFinished(data); //uses the AsyncJSONRetrieved interface to call the json received method in the main class
         }
+    }
+
+}
+
+class ImageViewAdapter extends RecyclerView.Adapter<ImageViewAdapter.ViewHolder>{
+    private Context context;
+    private String rootURL;
+    private JSONArray imageData;
+
+    public ImageViewAdapter(Context context, JSONObject data){
+        this.context = context;
+
+        try {
+            this.rootURL = data.getString("rootPath");
+            this.imageData = data.getJSONArray("data");
+        }catch(JSONException e){
+            e.printStackTrace();
+        }
+    }
+
+    public static class ViewHolder extends RecyclerView.ViewHolder{
+        private ImageView imageOne;
+
+        public ViewHolder(View itemView) {
+            super(itemView);
+            imageOne = (ImageView) itemView.findViewById(R.id.image_view_image1);
+        }
+    }
+
+    @Override
+    public ImageViewAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.recycler_view_image_view, parent, false);
+        return new ViewHolder(v);
+    }
+
+    @Override
+    public void onBindViewHolder(ImageViewAdapter.ViewHolder holder, int position) {
+       try{
+           String fullURL = rootURL + imageData.getJSONObject(position).getString("name");
+           Glide.with(context).load(fullURL).into(holder.imageOne);
+       }catch (JSONException e){
+           e.printStackTrace();
+       }
+    }
+
+    @Override
+    public int getItemCount() {
+        return imageData.length();
     }
 }
 

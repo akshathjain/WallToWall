@@ -6,8 +6,8 @@
     android:orientation="vertical"
     tools:context="com.akshathjain.walltowall.ImagePicker">
 
-    <ImageView
-        android:id="@+id/tempImageView"
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/recylcer_view_image_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
