@@ -7,11 +7,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 
@@ -31,7 +31,7 @@ public class ImagePicker extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_image_picker);
 
-        imageView = (RecyclerView) findViewById(R.id.recylcer_view_image_view);
+        imageView = (RecyclerView) findViewById(R.id.recycler_view_image_view);
         imageView.setLayoutManager(new LinearLayoutManager(this));
 
         JSONRetriever retriever = new JSONRetriever();
@@ -40,6 +40,9 @@ public class ImagePicker extends AppCompatActivity {
             public void onAsyncFinished(JSONObject o) {
                 System.out.println(o);
                 imageView.setAdapter(new ImageViewAdapter(ImagePicker.this, o));
+                /*try {
+                    Glide.with(ImagePicker.this).load(o.getString("rootPath") + o.getJSONArray("data").getJSONObject(0).getString("name")).into(temp);
+                }catch (Exception e){}*/
             }
         });
         retriever.execute("http://akshathjain.com/WallToWall/json/directory.json");
@@ -100,23 +103,23 @@ public class ImagePicker extends AppCompatActivity {
 
 }
 
-class ImageViewAdapter extends RecyclerView.Adapter<ImageViewAdapter.ViewHolder>{
+class ImageViewAdapter extends RecyclerView.Adapter<ImageViewAdapter.ViewHolder> {
     private Context context;
     private String rootURL;
     private JSONArray imageData;
 
-    public ImageViewAdapter(Context context, JSONObject data){
+    public ImageViewAdapter(Context context, JSONObject data) {
         this.context = context;
 
         try {
             this.rootURL = data.getString("rootPath");
             this.imageData = data.getJSONArray("data");
-        }catch(JSONException e){
+        } catch (JSONException e) {
             e.printStackTrace();
         }
     }
 
-    public static class ViewHolder extends RecyclerView.ViewHolder{
+    public static class ViewHolder extends RecyclerView.ViewHolder {
         private ImageView imageOne;
 
         public ViewHolder(View itemView) {
@@ -133,12 +136,12 @@ class ImageViewAdapter extends RecyclerView.Adapter<ImageViewAdapter.ViewHolder>
 
     @Override
     public void onBindViewHolder(ImageViewAdapter.ViewHolder holder, int position) {
-       try{
-           String fullURL = rootURL + imageData.getJSONObject(position).getString("name");
-           Glide.with(context).load(fullURL).into(holder.imageOne);
-       }catch (JSONException e){
-           e.printStackTrace();
-       }
+        try {
+            String fullURL = rootURL + imageData.getJSONObject(position).getString("name");
+            Glide.with(context).load(fullURL).into(holder.imageOne);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
