@@ -10,16 +10,20 @@ import android.os.Bundle;
 import android.widget.ImageView;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Scanner;
+import java.util.concurrent.ExecutionException;
 
 public class ImagePicker extends AppCompatActivity {
     private ImageView tempImageView;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,9 +35,8 @@ public class ImagePicker extends AppCompatActivity {
         ImageRetriever retriever = new ImageRetriever();
         retriever.addAsyncFinishedListener(new AsyncFinished<Bitmap[]>() {
             @Override
-            public void onAsyncFinished(Bitmap[] images) {
-                if (images != null)
-                    tempImageView.setImageBitmap(images[0]);
+            public void onAsyncFinished(Bitmap[] b) {
+                tempImageView.setImageBitmap(b[0]);
             }
         });
         retriever.execute("http://akshathjain.com/WallToWall/json/directory.json");
@@ -77,18 +80,20 @@ public class ImagePicker extends AppCompatActivity {
                     result += scanner.nextLine();
 
                 //get the bitmaps from json
-                JSONObject jo = new JSONObject(result);
-                String rootPath = jo.getString("rootPath"); //gets the image root path
-                JSONArray imageData = jo.getJSONArray("data"); //gets the array of image data
+                JSONObject data = new JSONObject(result);
+                String rootPath = data.getString("rootPath");
+                JSONArray imageData = data.getJSONArray("data");
+                Bitmap[] bitmaps = new Bitmap[imageData.length()];
+                for(int i = 0; i < bitmaps.length; i++){
+                    HttpURLConnection con = (HttpURLConnection)new URL(rootPath + imageData.getJSONObject(i).getString("name")).openConnection();
+                    Bitmap fullSize = BitmapFactory.decodeStream(con.getInputStream());
 
-
-                Bitmap[] imageBitmaps = new Bitmap[imageData.length()];
-                for (int i = 0; i < imageData.length(); i++) { //opens url connection and downloads the image
-                    HttpURLConnection imageConnection = (HttpURLConnection) new URL(imageData.getJSONObject(i).getString(rootPath + "name")).openConnection();
-                    imageBitmaps[i] = BitmapFactory.decodeStream(imageConnection.getInputStream());
+                    //compress the bitmap
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    fullSize.compress(Bitmap.CompressFormat.PNG, 0, out);
+                    bitmaps[i] = BitmapFactory.decodeStream(new ByteArrayInputStream(out.toByteArray()));
                 }
-
-                return imageBitmaps;
+                return bitmaps;
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -97,10 +102,10 @@ public class ImagePicker extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(Bitmap[] images) {
-            super.onPostExecute(images);
+        protected void onPostExecute(Bitmap[] data) {
+            super.onPostExecute(data);
             loader.dismiss(); //dismiss the loader dialog
-            reference.onAsyncFinished(images); //uses the AsyncJSONRetrieved interface to call the json received method in the main class
+            reference.onAsyncFinished(data); //uses the AsyncJSONRetrieved interface to call the json received method in the main class
         }
     }
 }
