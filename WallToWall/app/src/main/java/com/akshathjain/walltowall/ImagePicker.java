@@ -1,26 +1,22 @@
 package com.akshathjain.walltowall;
 
 import android.app.ProgressDialog;
-import android.content.Context;
+import android.app.WallpaperManager;
+import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.view.LayoutInflater;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.SimpleTarget;
+import com.bumptech.glide.request.transition.Transition;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Scanner;
@@ -41,15 +37,44 @@ public class ImagePicker extends AppCompatActivity {
         JSONRetriever retriever = new JSONRetriever();
         retriever.addAsyncFinishedListener(new AsyncFinished<JSONObject>() {
             @Override
-            public void onAsyncFinished(JSONObject o) {
-                System.out.println(o);
+            public void onAsyncFinished(final JSONObject o) {
                 ImageViewAdapter adapter = new ImageViewAdapter(ImagePicker.this, o);
 
                 //adds a custom on item click method
                 adapter.addRecyclerViewItemClickListener(new ImageViewAdapter.RecyclerViewItemClick() {
                     @Override
-                    public void onClick(int position) {
+                    public void onClick(final int position) {
                         System.out.println("position: " + position);
+                        final WallpaperManager wm = WallpaperManager.getInstance(ImagePicker.this); //get the wallpaper manager
+                        final ProgressDialog loader = new ProgressDialog(ImagePicker.this);
+                        loader.setCancelable(false);
+                        loader.setMessage("Setting wallpaper...");
+                        loader.show();
+
+                        try {
+                            String url = o.getString("rootPath") + o.getJSONArray("data").getJSONObject(position).getString("name");
+                            Glide.with(ImagePicker.this).asBitmap().load(url).into(new SimpleTarget<Bitmap>() {
+                                @Override
+                                public void onResourceReady(final Bitmap resource, Transition<? super Bitmap> transition) {
+
+                                    //multithread because the wallpaper manager takes a really long time
+                                    new Thread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            try {
+                                                wm.setBitmap(resource);
+                                            } catch (IOException e) {
+                                                e.printStackTrace();
+                                            }
+                                            loader.dismiss();
+                                        }
+                                    }).start();
+
+                                }
+                            });
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
                     }
                 });
                 imageView.setAdapter(adapter);
@@ -110,74 +135,8 @@ public class ImagePicker extends AppCompatActivity {
             reference.onAsyncFinished(data); //uses the AsyncJSONRetrieved interface to call the json received method in the main class
         }
     }
-
 }
 
-class ImageViewAdapter extends RecyclerView.Adapter<ImageViewAdapter.ViewHolder> {
-    private Context context;
-    private String rootURL;
-    private JSONArray imageData;
-    private RecyclerViewItemClick viewClickReference;
-
-    public ImageViewAdapter(Context context, JSONObject data) {
-        this.context = context;
-
-        try {
-            this.rootURL = data.getString("rootPath");
-            this.imageData = data.getJSONArray("data");
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
-        private ImageView imageOne;
-
-        public ViewHolder(View itemView) {
-            super(itemView);
-            imageOne = (ImageView) itemView.findViewById(R.id.image_view_image1);
-
-            //add an onclick listener for view
-            itemView.setOnClickListener(this);
-        }
-
-        @Override //this onclick listener will trigger the reference interface that the implementing class will have to implement
-        public void onClick(View v) {
-            if(viewClickReference != null)
-                viewClickReference.onClick(getAdapterPosition());
-        }
-    }
-
-    @Override
-    public ImageViewAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.recycler_view_image_view, parent, false);
-        return new ViewHolder(v);
-    }
-
-    @Override
-    public void onBindViewHolder(ImageViewAdapter.ViewHolder holder, int position) {
-        try {
-            String fullURL = rootURL + imageData.getJSONObject(position).getString("name");
-            Glide.with(context).load(fullURL).into(holder.imageOne);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public int getItemCount() {
-        return imageData.length();
-    }
-
-    public void addRecyclerViewItemClickListener(RecyclerViewItemClick reference){
-        this.viewClickReference = reference;
-    }
-
-    public interface RecyclerViewItemClick{
-        public void onClick(int position);
-    }
-
-}
 
 
 

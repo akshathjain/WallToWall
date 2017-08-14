@@ -2,6 +2,31 @@
 	"rootPath":"http://akshathjain.com/WallToWall/wallpapers/",
 	"data":[
 		{
+			"name":"JM_1.png",
+			"author":"Luke Vacek",
+			"style":"gradient"
+		},
+		{
+			"name":"JM_2.png",
+			"author":"Luke Vacek",
+			"style":"gradient"
+		},
+		{
+			"name":"JM_3.png",
+			"author":"Luke Vacek",
+			"style":"gradient"
+		},
+		{
+			"name":"JM_4.png",
+			"author":"Luke Vacek",
+			"style":"gradient"
+		},
+		{
+			"name":"JM_5.png",
+			"author":"Luke Vacek",
+			"style":"gradient"
+		},
+		{
 			"name":"Gradient_1.png",
 			"author":"Luke Vacek",
 			"style":"gradient"
@@ -38,6 +63,21 @@
 		},
 		{
 			"name":"Gradient_8.png",
+			"author":"Luke Vacek",
+			"style":"gradient"
+		},
+		{
+			"name":"Pexels_1.png",
+			"author":"Luke Vacek",
+			"style":"gradient"
+		},
+		{
+			"name":"Pexels_2.png",
+			"author":"Luke Vacek",
+			"style":"gradient"
+		},
+		{
+			"name":"Pexels_3.png",
 			"author":"Luke Vacek",
 			"style":"gradient"
 		}
