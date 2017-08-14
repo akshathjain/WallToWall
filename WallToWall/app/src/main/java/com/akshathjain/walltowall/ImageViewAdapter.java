@@ -59,7 +59,7 @@ public class ImageViewAdapter extends RecyclerView.Adapter<ImageViewAdapter.View
     public void onBindViewHolder(ImageViewAdapter.ViewHolder holder, int position) {
         try {
             String fullURL = rootURL + imageData.getJSONObject(position).getString("name");
-            Glide.with(context).load(fullURL).into(holder.imageOne);
+            Glide.with(context).load(fullURL).thumbnail(0.1f).into(holder.imageOne);
         } catch (JSONException e) {
             e.printStackTrace();
         }
